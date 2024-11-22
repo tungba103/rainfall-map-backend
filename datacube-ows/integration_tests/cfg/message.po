@@ -1,0 +1,12 @@
+
+msgid "global.title"
+msgstr "Over-ridden: aardvark"
+
+msgid "folder.sentinel2.abstract"
+msgstr "Over-ridden: bunny-rabbit"
+
+msgid "layer.s2_l2a.title"
+msgstr "Over-ridden: chook"
+
+msgid "style.s2_l2a.simple_rgb.title"
+msgstr "Over-ridden: donkey"

@@ -1,0 +1,82 @@
+version: '3'
+
+networks:
+  shared_network:
+    name: shared_network
+    driver: bridge
+
+services:
+  postgres:
+    image: kartoza/postgis:13-3.1
+    environment:
+      - POSTGRES_DB=opendatacube
+      - POSTGRES_PASSWORD=opendatacubepassword
+      - POSTGRES_USER=opendatacube
+    volumes:
+      - ./data/pg:/var/lib/postgresql/data
+    ports:
+      - 5436:5432
+    restart: unless-stopped
+    networks:
+      - shared_network
+
+  jupyter:
+    build: .
+    environment:
+      - DB_HOSTNAME=postgres
+      - DB_USERNAME=opendatacube
+      - DB_PASSWORD=opendatacubepassword
+      - DB_DATABASE=opendatacube
+      - AWS_NO_SIGN_REQUEST=true
+      - STAC_API_URL=https://explorer.sandbox.dea.ga.gov.au/stac/
+      - CIABPASSWORD=${CIABPASSWORD:-secretpassword}
+    links:
+      - postgres:postgres
+    ports:
+      - "80:8888"
+    volumes:
+      - ./notebooks:/notebooks
+      - ./tests:/tests
+      - ./products.csv:/products.csv
+      - ../STORAGE:/STORAGE
+    restart: unless-stopped
+    networks:
+      - shared_network
+
+  geoserver:
+    image: kartoza/geoserver:2.26.0
+    container_name: geoserver
+    environment:
+      - GEOSERVER_ADMIN_USER=admin
+      - GEOSERVER_ADMIN_PASSWORD=geoserver
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./geoserver/data_dir:/opt/geoserver/data_dir
+    links:
+      - postgres:postgres
+    restart: unless-stopped
+    networks:
+      - shared_network
+
+  api:
+    build: .
+    working_dir: /app 
+    environment:
+      - DB_PORT=5432
+      - DB_HOSTNAME=postgres
+      - DB_USERNAME=opendatacube
+      - DB_PASSWORD=opendatacubepassword
+      - DB_DATABASE=opendatacube
+    command: uvicorn api:app --host 0.0.0.0 --port 8000
+    volumes:
+      - ./api:/app 
+      - ../STORAGE:/STORAGE
+    links:
+      - postgres:postgres
+    ports:
+      - "8000:8000"
+    # depends_on:
+    #   - postgres
+    networks:
+      - shared_network

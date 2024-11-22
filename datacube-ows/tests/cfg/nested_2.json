@@ -1,0 +1,9 @@
+[
+  {
+    "test": 88888
+  },
+  {
+      "include": "simple.json",
+      "type": "json"
+  }
+]

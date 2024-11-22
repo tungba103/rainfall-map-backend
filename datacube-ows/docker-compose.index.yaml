@@ -1,0 +1,14 @@
+services:
+  index:
+    image: opendatacube/datacube-index:latest
+    environment:
+      DB_HOSTNAME: ${DB_HOSTNAME}
+      DB_PORT: 5432
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: ${DB_DATABASE}
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: tail -f /dev/null

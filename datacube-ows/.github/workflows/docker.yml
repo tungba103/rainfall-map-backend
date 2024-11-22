@@ -1,0 +1,53 @@
+---
+name: Build Docker Image
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "**"
+      - '!docs/**'
+      - '!*.rst'
+      - '!*.md'
+      - '!datacube_ows/__init__.py'
+
+  release:
+    types: [created, edited, published]
+
+env:
+  ORG: opendatacube
+  IMAGE: ows
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' || github.event_name == 'release'
+
+    steps:
+      - name: Login to DockerHub
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Export Secrets to enviroment
+        run: |
+          echo "${{ secrets.DockerPassword }}" | docker login -u "${{ secrets.DockerUser }}" --password-stdin
+
+      # Tag image if this is a tagged build
+      # if not use a pseudo tag based on current tag,
+      # number of commits since last tag and git hash
+      - name: Push to DockerHub (master branch or tagged release only)
+        if: github.ref == 'refs/heads/master' || github.event_name == 'release'
+        run: |
+
+          # build local docker image
+          docker build -t ${ORG}/${IMAGE}:latest .
+
+          # get version tag
+          tag="$(docker run ${ORG}/${IMAGE}:latest datacube-ows-update --version | grep 'version' | sed 's/Open Data Cube Open Web Services (datacube-ows) version //' | sed 's/+/\_/g')"
+
+          # tag and push images
+          docker tag ${ORG}/${IMAGE}:latest ${ORG}/${IMAGE}:${tag}
+          docker push ${ORG}/${IMAGE}:latest
+          docker push ${ORG}/${IMAGE}:${tag}

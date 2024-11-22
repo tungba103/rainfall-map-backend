@@ -1,0 +1,25 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+    -   id: check-yaml
+    -   id: end-of-file-fixer
+    -   id: trailing-whitespace
+-   repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+    -   id: isort
+-   repo: https://github.com/PyCQA/flake8
+    rev: 7.1.1
+    hooks:
+    -   id: flake8
+        args: ["--ignore=E501", "--select=F401,E201,E202,E203,E502,E241,E225,E306,E231,E226,E123,F811"]
+# -   repo: https://github.com/PyCQA/bandit
+#     rev: 1.7.4
+#     hooks:
+#     -   id: bandit
+-   repo: https://github.com/PyCQA/pylint
+    rev: v3.3.1
+    hooks:
+      - id: pylint
+        args: ["--disable=C,R,W,E1136"]

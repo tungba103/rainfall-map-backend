@@ -1,0 +1,234 @@
+<?xml version='1.0' encoding="UTF-8"?>
+<Capabilities
+        xmlns="http://www.opengis.net/wmts/1.0"
+        xmlns:ows="http://www.opengis.net/ows/1.1"
+        xmlns:xlink="http://www.w3.org/1999/xlink"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:gml="http://www.opengis.net/gml"
+        xsi:schemaLocation="http://www.opengis.net/wmts/1.0 http://schemas.opengis.net/wmts/1.0.0/wmtsGetCapabilities_response.xsd"
+        version="1.0.0"
+>
+
+{% if show_service_id %}
+    <ows:ServiceIdentification>
+        <ows:Title>{{ cfg.title }}</ows:Title>
+        {% if cfg.abstract %}
+        <ows:Abstract>
+            {{ cfg.abstract }}
+        </ows:Abstract>
+        {% endif %}
+        {% if cfg.keywords %}
+        <ows:Keywords>
+            {% for kw in cfg.keywords %}
+            <ows:Keyword>{{ kw }}</ows:Keyword>
+            {% endfor %}
+        </ows:Keywords>
+        {% endif %}
+        <ows:ServiceType>OGC WMTS</ows:ServiceType>
+        <ows:ServiceTypeVersion>1.0.0</ows:ServiceTypeVersion>
+        <ows:Fees>{{ cfg.fees }}</ows:Fees>
+        <ows:AccessConstraints>{{ cfg.access_constraints }}</ows:AccessConstraints>
+    </ows:ServiceIdentification>
+{% endif %}
+
+{% if show_service_provider %}
+    <ows:ServiceProvider>
+        {% if cfg.contact_info %}
+        {% if cfg.contact_info.organisation %}
+        <ows:ProviderName>{{ cfg.contact_info.organisation }}</ows:ProviderName>
+        {% endif %}
+        {% if cfg.info_url %}
+        <ows:ProviderSite xlink:href="{{ cfg.info_url }}"/>
+        {% endif %}
+        <ows:ServiceContact>
+            {% if cfg.contact_info.person %}
+            <ows:IndividualName>{{ cfg.contact_info.person }}</ows:IndividualName>
+            {% endif %}
+            {% if cfg.contact_info.position %}
+            <ows:PositionName>{{ cfg.contact_info.position }}</ows:PositionName>
+            {% endif %}
+            {% if cfg.contact_info.address or cfg.contact_info.telephone or cfg.contact_info.fax or cfg.contact_info.email %}
+            <ows:ContactInfo>
+                {% if cfg.contact_info.telephone or cfg.contact_info.fax %}
+                <ows:Phone>
+                    {% if cfg.contact_info.telephone %}
+                    <ows:Voice>{{ cfg.contact_info.telephone }}</ows:Voice>
+                    {% endif %}
+                    {% if cfg.contact_info.fax %}
+                    <ows:Facsimile>{{ cfg.contact_info.fax }}</ows:Facsimile>
+                    {% endif %}
+                </ows:Phone>
+                {% endif %}
+                {% if cfg.contact_info.address or cfg.contact_info.email %}
+                <ows:Address>
+                    {%  if cfg.contact_info.address %}
+                    <ows:DeliveryPoint>{{ cfg.contact_info.address.address }}</ows:DeliveryPoint>
+                    <ows:City>{{ cfg.contact_info.address.city }}</ows:City>
+                    <ows:AdministrativeArea>{{ cfg.contact_info.address.state }}</ows:AdministrativeArea>
+                    <ows:PostalCode>{{ cfg.contact_info.address.postcode }}</ows:PostalCode>
+                    <ows:Country>{{ cfg.contact_info.address.country }}</ows:Country>
+                    {%  endif %}
+                    {% if cfg.contact_info.email %}
+                    <ows:ElectronicMailAddress>{{ cfg.contact_info.email }}</ows:ElectronicMailAddress>
+                    {% endif %}
+                </ows:Address>
+                {% endif %}
+            </ows:ContactInfo>
+            {% endif %}
+        </ows:ServiceContact>
+        {% endif %}
+    </ows:ServiceProvider>
+{% endif %}
+
+{% if show_ops_metadata %}
+    <ows:OperationsMetadata>
+        <ows:Operation name="GetCapabilities">
+            <ows:DCP>
+                <ows:HTTP>
+                    <ows:Get xlink:href="{{ base_url }}/wmts?">
+                        <ows:Constraint name="GetEncoding">
+                            <ows:AllowedValues>
+                                <ows:Value>KVP</ows:Value>
+                            </ows:AllowedValues>
+                        </ows:Constraint>
+                    </ows:Get>
+                </ows:HTTP>
+            </ows:DCP>
+        </ows:Operation>
+        <ows:Operation name="GetTile">
+            <ows:DCP>
+                <ows:HTTP>
+                    <ows:Get xlink:href="{{ base_url }}/wmts?">
+                        <ows:Constraint name="GetEncoding">
+                            <ows:AllowedValues>
+                                <ows:Value>KVP</ows:Value>
+                            </ows:AllowedValues>
+                        </ows:Constraint>
+                    </ows:Get>
+                </ows:HTTP>
+            </ows:DCP>
+        </ows:Operation>
+        <ows:Operation name="GetFeatureInfo">
+            <ows:DCP>
+                <ows:HTTP>
+                    <ows:Get xlink:href="{{ base_url }}/wmts?">
+                        <ows:Constraint name="GetEncoding">
+                            <ows:AllowedValues>
+                                <ows:Value>KVP</ows:Value>
+                            </ows:AllowedValues>
+                        </ows:Constraint>
+                    </ows:Get>
+                </ows:HTTP>
+            </ows:DCP>
+        </ows:Operation>
+    </ows:OperationsMetadata>
+{% endif %}
+
+{% if show_contents %}
+    <Contents>
+        {% for layer in cfg.product_index.values() %}
+            {% if layer.ready and not layer.hide %}
+        {% set product_ranges = layer.ranges %}
+        {% if product_ranges %}
+        <Layer>
+            <ows:Title>{{ layer.title }}</ows:Title>
+            <ows:Abstract>{{ layer.abstract }}</ows:Abstract>
+            <ows:WGS84BoundingBox>
+                <ows:LowerCorner>{{ product_ranges.lon.min }} {{ product_ranges.lat.min }}</ows:LowerCorner>
+                <ows:UpperCorner>{{ product_ranges.lon.max }} {{ product_ranges.lat.max }}</ows:UpperCorner>
+            </ows:WGS84BoundingBox>
+            <ows:Identifier>{{ layer.name }}</ows:Identifier>
+            {% for style in layer.styles %}
+            <Style{% if style == layer.default_style %} isDefault="true"{% endif %}>
+                <ows:Identifier>{{ style.name }}</ows:Identifier>
+                <ows:Title>{{ style.title }}</ows:Title>
+                <ows:Abstract>{{ style.abstract }}</ows:Abstract>
+                {% if style.legend_cfg.show_legend %}
+                <LegendURL format="image/png"
+                        xlink:href="{{ base_url }}/legend/{{ layer.name }}/{{ style.name }}/legend.png"/>
+                {% endif %}
+            </Style>
+            {% endfor %}
+
+            <Format>image/png</Format>
+            <InfoFormat>application/json</InfoFormat>
+
+            {% if layer.mosaic_date_func %}
+                <!-- No time dimension -->
+            {% else %}
+                <Dimension>
+                    <ows:Identifier>Time</ows:Identifier>
+                    <ows:Title>Date</ows:Title>
+                    {% for t in product_ranges.times %}
+                        <Value>{{ t }}</Value>
+                    {% endfor %}
+                    <Default>{{ product_ranges.times[-1] }}</Default>
+                </Dimension>
+            {% endif %}
+
+            {% for tms in cfg.tile_matrix_sets.keys() %}
+            <TileMatrixSetLink>
+                <TileMatrixSet>{{ tms }}</TileMatrixSet>
+            </TileMatrixSetLink>
+            {% endfor %}
+        </Layer>
+        {% endif %}
+        {% endif %}
+        {% endfor %}
+        {% for tms in cfg.tile_matrix_sets.values() %}
+        <TileMatrixSet>
+            <ows:Identifier>{{ tms.identifier }}</ows:Identifier>
+            <ows:SupportedCRS>{{ tms.crs_display }}</ows:SupportedCRS>
+            {% if tms.wkss %}
+                <WellKnownScaleSet>{{ tms.wkss }}</WellKnownScaleSet>
+            {% endif %}
+            {% for denom in tms.scale_set %}
+                <TileMatrix>
+                    <ows:Identifier>{{ loop.index0 }}</ows:Identifier>
+                    <ScaleDenominator>{{ denom }}</ScaleDenominator>
+                    <TopLeftCorner>{{ tms.matrix_origin[0] }} {{ tms.matrix_origin[1] }}</TopLeftCorner>
+                    <TileWidth>{{ tms.tile_size[0] }}</TileWidth>
+                    <TileHeight>{{ tms.tile_size[1] }}</TileHeight>
+                    <MatrixWidth>{{ 2 ** tms.width_exponent(loop.index0) }}</MatrixWidth>
+                    <MatrixHeight>{{ 2 ** tms.height_exponent(loop.index0) }}</MatrixHeight>
+                </TileMatrix>
+            {% endfor %}
+        </TileMatrixSet>
+        {% endfor %}
+    </Contents>
+{% endif %}
+
+{% macro render_theme(lyr) -%}
+    {% if lyr.named %}
+        {{ render_theme_layer(lyr) }}
+    {% else %}
+        {{ render_theme_folder(lyr) }}
+    {% endif %}
+{%- endmacro  %}
+{% macro render_theme_folder(lyr) -%}
+    <Theme>
+        <ows:Title>{{ lyr.title }}</ows:Title>
+        <ows:Abstract>{{ lyr.abstract }}</ows:Abstract>
+        <ows:Identifier>{{ lyr.slug_name }}</ows:Identifier>
+        {% for c_lyr in lyr.child_layers %}
+            {{ render_theme(c_lyr) }}
+        {% endfor %}
+    </Theme>
+{%- endmacro  %}
+{% macro render_theme_layer(lyr) -%}
+    <Theme>
+        <ows:Title>{{ lyr.title }}</ows:Title>
+        <ows:Abstract>{{ lyr.abstract }}</ows:Abstract>
+        <ows:Identifier>{{ lyr.name }}</ows:Identifier>
+        <LayerRef>{{ lyr.name }}</LayerRef>
+    </Theme>
+{%- endmacro  %}
+
+{% if show_themes %}
+    <Themes>
+        {% for lyr in cfg.layers %}
+            {{ render_theme(lyr) }}
+        {% endfor %}
+    </Themes>
+{% endif %}
+</Capabilities>

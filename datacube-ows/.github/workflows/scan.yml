@@ -1,0 +1,75 @@
+---
+name: Scan
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/scan.yml"
+      - "Dockerfile"
+
+  pull_request:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/scan.yml"
+      - "Dockerfile"
+
+  schedule:
+    - cron: '0 0 * * *'
+
+env:
+  IMAGE_NAME: opendatacube/ows
+
+jobs:
+  cve-scanner:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout git
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get unstable git tag
+        run: >
+          echo "UNSTABLE_TAG=$(git describe --tags)" >> $GITHUB_ENV
+
+      - name: Log the unstable tag
+        run: echo $UNSTABLE_TAG
+
+      - name: Build unstable + latest Docker image tag
+        if: github.event_name != 'release'
+        uses: whoan/docker-build-with-cache-action@v8
+        with:
+          image_name: ${{ env.IMAGE_NAME }}
+          image_tag: ${{ env.UNSTABLE_TAG }},latest
+          build_extra_args: "--build-arg=ENVIRONMENT=deployment"
+          push_image_and_stages: false
+
+      - name: Run vulnerability scanner
+        if: github.event_name != 'release'
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "${{ env.IMAGE_NAME }}:${{ env.UNSTABLE_TAG }}"
+          format: "sarif"
+          output: 'trivy-results.sarif'
+          # exit-code: "1"
+          severity: "CRITICAL,HIGH"
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      # - name: Notify Slack for Failures
+      #   uses: rtCamp/action-slack-notify@v2.1.0
+      #   if: failure()
+      #   env:
+      #     SLACK_CHANNEL: ga-wms-ops
+      #     SLACK_ICON: "https://github.com/docker.png?size=48"
+      #     SLACK_COLOR: "#482de1"
+      #     SLACK_MESSAGE: ""
+      #     SLACK_TITLE: CVE Scan alert
+      #     SLACK_USERNAME: OWS Scanner
+      #     SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}

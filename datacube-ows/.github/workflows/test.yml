@@ -1,0 +1,75 @@
+---
+name: Tests
+
+on:
+  pull_request:
+    branches:
+        - 'master'
+    paths:
+      - '**'
+      - '!docs/**'
+      - '!*.rst'
+      - '!*.md'
+      - '!datacube_ows/__init__.py'
+      - '!.github/**'
+      - '.github/workflows/test.yml'
+
+  push:
+    branches:
+      - 'master'
+    paths:
+      - '**'
+      - '!docs/**'
+      - '!*.rst'
+      - '!*.md'
+      - '!datacube_ows/__init__.py'
+      - '!.github/**'
+      - '.github/workflows/test.yml'
+
+env:
+  ORG: opendatacube
+  IMAGE: ows_18
+
+jobs:
+  unit-integration-performance-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # We build the stage 1 image, then run test on it
+      # These tests require extra files we don't want in
+      # the production image
+      # We build the stage 1 image, then run test on it
+      # These tests require extra files we don't want in
+      # the production image
+      - name: Build dev OWS image
+        run: |
+          docker build --build-arg ENVIRONMENT=test \
+            --tag    ${ORG}/${IMAGE}:_builder \
+            .
+
+      - name: Test and lint dev OWS image
+        run: |
+          mkdir artifacts
+          docker run -e LOCAL_UID=$(id -u $USER) -e LOCAL_GID=$(id -g $USER) -v ${PWD}/artifacts:/mnt/artifacts ${ORG}/${IMAGE}:_builder /bin/sh -c "cd /src && ./check-code.sh"
+          mv ./artifacts/coverage.xml ./artifacts/coverage-unit.xml
+
+      - name: Dockerized Integration Pytest
+        run: |
+          export LOCAL_UID=$(id -u $USER)
+          export LOCAL_GID=$(id -g $USER)
+          export $(grep -v '^#' .env_simple | xargs)
+          docker compose -f docker-compose.yaml -f docker-compose.db.yaml up -d --wait --build
+          docker compose -f docker-compose.yaml -f docker-compose.db.yaml exec -T ows_18 /bin/sh -c "cd /src && ./check-code-all.sh"
+          docker compose -f docker-compose.yaml -f docker-compose.db.yaml down
+
+      - name: Upload All coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          directory: ./artifacts/
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

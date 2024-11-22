@@ -1,0 +1,4 @@
+product,definition
+imerg_e_10KM_daily,../STORAGE/PRODUCT_DOC/DATA_10KM_daily/imerg_e_10KM_daily.product.yaml
+imerg_l_10KM_daily,../STORAGE/PRODUCT_DOC/DATA_10KM_daily/imerg_l_10KM_daily.product.yaml
+imerg_f_10KM_daily,../STORAGE/PRODUCT_DOC/DATA_10KM_daily/imerg_f_10KM_daily.product.yaml
